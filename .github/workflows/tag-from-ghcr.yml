@@ -1,0 +1,169 @@
+name: Tag from GHCR image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to mirror from ghcr.io/vertigis/studio/base
+        required: true
+        type: string
+  registry_package:
+    types:
+      - published
+      - updated
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: tag-from-ghcr-${{ inputs.image_tag || github.event.registry_package.package_version.container_metadata.tag.name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  tag-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve image tag
+        id: resolve
+        env:
+          EVENT_PACKAGE_NAME: ${{ github.event.registry_package.name }}
+          EVENT_PACKAGE_TYPE: ${{ github.event.registry_package.package_type }}
+          EVENT_TAG: ${{ github.event.registry_package.package_version.container_metadata.tag.name }}
+          INPUT_TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+
+          tag="${INPUT_TAG:-$EVENT_TAG}"
+
+          if [ -z "$tag" ]; then
+            echo "No image tag was provided or found in the registry_package payload."
+            exit 1
+          fi
+
+          if [[ "$tag" != v* ]]; then
+            echo "Skipping tag '$tag' because it does not start with 'v'."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$tag" == sha256-* ]]; then
+            echo "Skipping digest-style registry event tag '$tag'."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "$EVENT_PACKAGE_NAME" ]; then
+            case "$EVENT_PACKAGE_NAME" in
+              studio/base|base|studio-base)
+                ;;
+              *)
+                echo "Skipping unrelated package '$EVENT_PACKAGE_NAME'."
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
+          fi
+
+          if [ -n "$EVENT_PACKAGE_TYPE" ] && [ "$EVENT_PACKAGE_TYPE" != "container" ] && [ "$EVENT_PACKAGE_TYPE" != "CONTAINER" ]; then
+            echo "Skipping package type '$EVENT_PACKAGE_TYPE'."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check out default branch
+        if: steps.resolve.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Fetch image metadata from GHCR
+        if: steps.resolve.outputs.skip != 'true'
+        id: manifest
+        env:
+          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          token="$(python -c "import json,sys,urllib.request; print(json.load(urllib.request.urlopen('https://ghcr.io/token?scope=repository:vertigis/studio/base:pull'))['token'])")"
+          manifest_headers="$(mktemp)"
+
+          curl -fsSL \
+            -D "$manifest_headers" \
+            -H "Authorization: Bearer $token" \
+            -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json" \
+            "https://ghcr.io/v2/vertigis/studio/base/manifests/${IMAGE_TAG}" \
+            -o manifest.json
+
+          curl -fsSL \
+            -H "Authorization: Bearer $token" \
+            "https://ghcr.io/v2/vertigis/studio/base/tags/list" \
+            -o tags.json
+
+          digest="$(awk 'BEGIN { IGNORECASE = 1 } /^docker-content-digest:/ { gsub("\r", "", $2); print $2 }' "$manifest_headers")"
+
+          if [ -z "$digest" ]; then
+            echo "Failed to read the manifest digest for $IMAGE_TAG."
+            exit 1
+          fi
+
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Generate markdown snapshot
+        if: steps.resolve.outputs.skip != 'true'
+        env:
+          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+          python .github/scripts/build_snapshot.py \
+            --tag "$IMAGE_TAG" \
+            --tags-json tags.json \
+            --manifest-json manifest.json \
+            --output docs/index.md
+
+      - name: Commit markdown snapshot
+        if: steps.resolve.outputs.skip != 'true'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$(git status --short -- docs/index.md)" ]; then
+            echo "Snapshot is unchanged."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add docs/index.md
+          git commit -m "Update Studio Base snapshot for ${IMAGE_TAG}"
+          git push origin "HEAD:${DEFAULT_BRANCH}"
+
+      - name: Create git tag
+        if: steps.resolve.outputs.skip != 'true'
+        env:
+          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
+          MANIFEST_DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags origin
+
+          if git rev-parse -q --verify "refs/tags/${IMAGE_TAG}" >/dev/null; then
+            echo "Tag ${IMAGE_TAG} already exists."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$IMAGE_TAG" -m "Mirror ghcr.io/vertigis/studio/base:${IMAGE_TAG}
+
+          Manifest digest: ${MANIFEST_DIGEST}"
+          git push origin "refs/tags/${IMAGE_TAG}"

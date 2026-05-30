@@ -8,6 +8,14 @@ Container image for running VertiGIS Studio Base with Docker.
 ghcr.io/vertigis/studio/base:<tag>
 ```
 
+## GitHub Actions tag sync
+
+This repository includes a workflow that mirrors `ghcr.io/vertigis/studio/base:<tag>` to a git tag with the same name.
+
+- Trigger it manually with **Actions > Tag from GHCR image > Run workflow** and provide `image_tag`.
+- It also listens for `registry_package` publish/update events and only creates git tags for image tags that start with `v`.
+- Each run also regenerates `docs/index.md` with a compact snapshot of the image versions.
+
 ## Registry login
 
 ```sh
