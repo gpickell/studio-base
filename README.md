@@ -1,6 +1,6 @@
 # VertiGIS Studio Base
 
-Container image for running VertiGIS Studio Base with Docker.
+Container image for running [VertiGIS Studio Base](https://gpickell.github.io/studio-base/) with Docker.
 
 ## Image
 
@@ -15,6 +15,7 @@ This repository includes a workflow that mirrors `ghcr.io/vertigis/studio/base:<
 - Trigger it manually with **Actions > Tag from GHCR image > Run workflow** and provide `image_tag`.
 - It also listens for `registry_package` publish/update events and only creates git tags for image tags that start with `v`.
 - Each tag contains a generated `docs/index.md` snapshot without updating `master`.
+- Rerunning the workflow for the same image tag force-updates that git tag and the matching `gh-pages` content.
 - The same run publishes `index.html`, `README.md`, and `docs/index.md` to GitHub Pages with the same layout as the tagged content.
 
 ## Registry login
