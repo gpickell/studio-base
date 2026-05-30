@@ -51,11 +51,17 @@ def main() -> None:
         key=lambda item: item[0],
     )
 
-    lines = ["# VertiGIS Studio Base", "", "| Tag | Current |", "| --- | --- |"]
+    lines = [
+        "# VertiGIS Studio Base",
+        "",
+        "| Tag | Docker pull | Viewer |",
+        "| --- | --- | --- |",
+    ]
 
     for tag in top_tags:
-        current = "Yes" if tag == args.tag else ""
-        lines.append(f"| `{tag}` | {current} |")
+        pull = f"`docker pull ghcr.io/vertigis/studio/base:{tag}`"
+        viewer = f"[Open](?tag={tag})"
+        lines.append(f"| `{tag}` | {pull} | {viewer} |")
 
     lines.extend(
         [
