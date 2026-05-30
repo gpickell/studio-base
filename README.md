@@ -14,7 +14,8 @@ This repository includes a workflow that mirrors `ghcr.io/vertigis/studio/base:<
 
 - Trigger it manually with **Actions > Tag from GHCR image > Run workflow** and provide `image_tag`.
 - It also listens for `registry_package` publish/update events and only creates git tags for image tags that start with `v`.
-- Each run also regenerates `docs/index.md` with a compact snapshot of the image versions.
+- Each tag contains a generated `docs/index.md` snapshot without updating `master`.
+- The same run publishes `index.html`, `README.md`, and `docs/index.md` to GitHub Pages with the same layout as the tagged content.
 
 ## Registry login
 

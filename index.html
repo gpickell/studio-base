@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="icon" href="data:">
+  <script type="module">
+    import config from "https://gpickell.github.io/vertigis-markdown-viewer/src/viewer.js";
+
+    const href = new URL(location.href);
+    const tag = href.searchParams.get("tag");
+
+    await config({
+      studio: "" + new URL("README.md", href),
+      index: "" + new URL("docs/index.md", href),
+      setup: "https://raw.githubusercontent.com/gpickell/vertigis-starter-kit/master/README.md",
+      utils: "https://raw.githubusercontent.com/gpickell/vertigis-starter-kit/master/utils/README.md",
+    });
+  </script>
+</head>
+<body></body>
+</html>

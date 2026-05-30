@@ -23,6 +23,9 @@ concurrency:
 jobs:
   tag-image:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      skip: ${{ steps.resolve.outputs.skip }}
 
     steps:
       - name: Resolve image tag
@@ -125,29 +128,10 @@ jobs:
             --manifest-json manifest.json \
             --output docs/index.md
 
-      - name: Commit markdown snapshot
-        if: steps.resolve.outputs.skip != 'true'
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "$(git status --short -- docs/index.md)" ]; then
-            echo "Snapshot is unchanged."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add docs/index.md
-          git commit -m "Update Studio Base snapshot for ${IMAGE_TAG}"
-          git push origin "HEAD:${DEFAULT_BRANCH}"
-
       - name: Create git tag
         if: steps.resolve.outputs.skip != 'true'
         env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
           MANIFEST_DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
@@ -162,8 +146,48 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --detach "origin/${DEFAULT_BRANCH}"
+          git add docs/index.md
+          git commit -m "Capture Studio Base snapshot for ${IMAGE_TAG}"
 
           git tag -a "$IMAGE_TAG" -m "Mirror ghcr.io/vertigis/studio/base:${IMAGE_TAG}
 
           Manifest digest: ${MANIFEST_DIGEST}"
           git push origin "refs/tags/${IMAGE_TAG}"
+
+      - name: Prepare Pages artifact
+        if: steps.resolve.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+
+          rm -rf site
+          mkdir -p site/docs
+          cp index.html site/index.html
+          cp README.md site/README.md
+          cp docs/index.md site/docs/index.md
+          touch site/.nojekyll
+
+      - name: Upload GitHub Pages artifact
+        if: steps.resolve.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy-pages:
+    if: needs.tag-image.outputs.skip != 'true'
+    needs: tag-image
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

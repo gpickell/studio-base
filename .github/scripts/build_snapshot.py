@@ -51,14 +51,7 @@ def main() -> None:
         key=lambda item: item[0],
     )
 
-    lines = [
-        f"# VertiGIS Studio Base {args.tag}",
-        "",
-        "## Best 5 versions",
-        "",
-        "| Tag | Current |",
-        "| --- | --- |",
-    ]
+    lines = ["# VertiGIS Studio Base", "", "| Tag | Current |", "| --- | --- |"]
 
     for tag in top_tags:
         current = "Yes" if tag == args.tag else ""
