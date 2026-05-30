@@ -147,7 +147,8 @@ jobs:
             git checkout --detach "refs/tags/${IMAGE_TAG}"
           else
             git checkout --detach "origin/${DEFAULT_BRANCH}"
-            git add README.md index.html docs/index.md
+            git add README.md index.html
+            git add -f docs/index.md
             git commit -m "Capture Studio Base snapshot for ${IMAGE_TAG}"
 
             git tag -a "$IMAGE_TAG" -m "Mirror ghcr.io/vertigis/studio/base:${IMAGE_TAG}
