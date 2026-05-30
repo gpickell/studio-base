@@ -35,13 +35,16 @@ def package_url_by_tag(path: str | None) -> dict[str, str]:
     urls: dict[str, str] = {}
 
     for version in payload:
-        html_url = version.get("html_url")
-        if not html_url:
+        version_id = version.get("id")
+        if not version_id:
             continue
 
         tags = version.get("metadata", {}).get("container", {}).get("tags", [])
         for tag in tags:
-            urls[tag] = html_url
+            urls[tag] = (
+                "https://github.com/vertigis/studio-base/pkgs/container/"
+                f"studio%2Fbase/{version_id}?tag={tag}"
+            )
 
     return urls
 
