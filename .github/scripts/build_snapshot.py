@@ -27,16 +27,37 @@ def load_json(path: str) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def package_url_by_tag(path: str | None) -> dict[str, str]:
+    if not path:
+        return {}
+
+    payload = load_json(path)
+    urls: dict[str, str] = {}
+
+    for version in payload:
+        html_url = version.get("html_url")
+        if not html_url:
+            continue
+
+        tags = version.get("metadata", {}).get("container", {}).get("tags", [])
+        for tag in tags:
+            urls[tag] = html_url
+
+    return urls
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--tag", required=True)
     parser.add_argument("--tags-json", required=True)
     parser.add_argument("--manifest-json", required=True)
+    parser.add_argument("--versions-json")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
     tags_payload = load_json(args.tags_json)
     manifest_payload = load_json(args.manifest_json)
+    package_urls = package_url_by_tag(args.versions_json)
 
     tags = [tag for tag in tags_payload.get("tags", []) if tag.startswith("v")]
     top_tags = sorted(tags, key=version_key, reverse=True)[:5]
@@ -52,21 +73,24 @@ def main() -> None:
     )
 
     lines = [
-        "# VertiGIS Studio Base",
+        "# Tags and Versions",
         "",
-        "| Tag | Docker pull | Viewer |",
+        "| Tag | Docs | Package |",
         "| --- | --- | --- |",
     ]
 
     for tag in top_tags:
-        pull = f"`docker pull ghcr.io/vertigis/studio/base:{tag}`"
-        viewer = f"[Open](?tag={tag})"
-        lines.append(f"| `{tag}` | {pull} | {viewer} |")
+        docs = f"[docs](?tag={tag})"
+        package = package_urls.get(
+            tag,
+            f"https://github.com/vertigis/studio-base/pkgs/container/studio%2Fbase?tag={tag}",
+        )
+        lines.append(f"| `{tag}` | {docs} | [package]({package}) |")
 
     lines.extend(
         [
             "",
-            "## Versions",
+            "## Components",
             "",
             "| Component | Version |",
             "| --- | --- |",

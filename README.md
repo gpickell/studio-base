@@ -17,6 +17,7 @@ This repository includes a workflow that mirrors `ghcr.io/vertigis/studio/base:<
 - Each tag contains a generated `docs/index.md` snapshot without updating `master`.
 - Rerunning the workflow for the same image tag force-updates that git tag and the matching `gh-pages` content.
 - The same run publishes `index.html`, `README.md`, and `docs/index.md` to GitHub Pages with the same layout as the tagged content.
+- If `GH_PACKAGES_TOKEN` is configured with `read:packages`, the snapshot links each tag to its exact GitHub Packages page.
 
 ## Registry login
 
