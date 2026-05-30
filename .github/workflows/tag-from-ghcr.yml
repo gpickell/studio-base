@@ -147,7 +147,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --detach "origin/${DEFAULT_BRANCH}"
-          git add docs/index.md
+          git add README.md index.html docs/index.md
           git commit -m "Capture Studio Base snapshot for ${IMAGE_TAG}"
 
           git tag -a "$IMAGE_TAG" -m "Mirror ghcr.io/vertigis/studio/base:${IMAGE_TAG}

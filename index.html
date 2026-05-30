@@ -5,8 +5,9 @@
   <script type="module">
     import config from "https://gpickell.github.io/vertigis-markdown-viewer/src/viewer.js";
 
-    const href = new URL(location.href);
-    const tag = href.searchParams.get("tag");
+    const args = new URLSearchParams(window.location.search);
+    const tag = args.get("tag") || "gh-pages";
+    const href = new URL("https://raw.githubusercontent.com/gpickell/studio-base/" + tag);
 
     await config({
       studio: "" + new URL("README.md", href),
