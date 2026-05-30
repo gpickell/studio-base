@@ -139,21 +139,24 @@ jobs:
 
           git fetch --tags origin
 
-          if git rev-parse -q --verify "refs/tags/${IMAGE_TAG}" >/dev/null; then
-            echo "Tag ${IMAGE_TAG} already exists."
-            exit 0
-          fi
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout --detach "origin/${DEFAULT_BRANCH}"
-          git add README.md index.html docs/index.md
-          git commit -m "Capture Studio Base snapshot for ${IMAGE_TAG}"
 
-          git tag -a "$IMAGE_TAG" -m "Mirror ghcr.io/vertigis/studio/base:${IMAGE_TAG}
+          if git rev-parse -q --verify "refs/tags/${IMAGE_TAG}" >/dev/null; then
+            echo "Tag ${IMAGE_TAG} already exists."
+            git checkout --detach "refs/tags/${IMAGE_TAG}"
+          else
+            git checkout --detach "origin/${DEFAULT_BRANCH}"
+            git add README.md index.html docs/index.md
+            git commit -m "Capture Studio Base snapshot for ${IMAGE_TAG}"
 
-          Manifest digest: ${MANIFEST_DIGEST}"
-          git push origin "refs/tags/${IMAGE_TAG}"
+            git tag -a "$IMAGE_TAG" -m "Mirror ghcr.io/vertigis/studio/base:${IMAGE_TAG}
+
+            Manifest digest: ${MANIFEST_DIGEST}"
+            git push origin "refs/tags/${IMAGE_TAG}"
+          fi
+
+          git push --force origin "HEAD:refs/heads/gh-pages"
 
       - name: Prepare Pages artifact
         if: steps.resolve.outputs.skip != 'true'
