@@ -58,18 +58,18 @@ def main() -> None:
     lines = [
         "# Tags and Versions",
         "",
-        "| Current | Tag | Docs | Package |",
-        "| --- | --- | --- | --- |",
+        "| Tag | Docs | Package |",
+        "| --- | --- | --- |",
     ]
 
     for tag in top_tags:
-        current = "**This**" if tag == args.current_tag else ""
+        tag_label = f"`{tag}` _(this)_" if tag == args.current_tag else f"`{tag}`"
         docs = f"[docs](?tag={tag})"
         package = package_urls.get(
             tag,
             f"https://github.com/vertigis/studio-base/pkgs/container/studio%2Fbase?tag={tag}",
         )
-        lines.append(f"| {current} | `{tag}` | {docs} | [package]({package}) |")
+        lines.append(f"| {tag_label} | {docs} | [package]({package}) |")
 
     lines.extend(
         [
