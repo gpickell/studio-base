@@ -1,6 +1,8 @@
-# VertiGIS Studio Base
+# ![](https://apps.vertigisstudio.com/favicon.ico) VertiGIS Studio Base
 
-Container image for running [VertiGIS Studio Base](https://gpickell.github.io/studio-base/) with Docker.
+Container image for running VertiGIS Studio with Docker.
+
+See [docs](https://gpickell.github.io/studio-base/).
 
 ## Image
 
@@ -10,13 +12,13 @@ ghcr.io/vertigis/studio/base:<tag>
 
 ## GitHub Actions tag sync
 
-This repository includes a workflow that mirrors `ghcr.io/vertigis/studio/base:<tag>` to a git tag with the same name.
+This repository includes a workflow that mirrors the latest `ghcr.io/vertigis/studio/base:v*` tags to matching git tags.
 
-- Trigger it manually with **Actions > Tag from GHCR image > Run workflow** and provide `image_tag`.
-- It also listens for `registry_package` publish/update events and only creates git tags for image tags that start with `v`.
+- Trigger it manually with **Actions > Tag from GHCR image > Run workflow** to sync the latest five version tags.
+- It also listens for `registry_package` publish/update events, resolves the latest five image tags that start with `v`, and refreshes each matching git tag.
 - Each tag contains a generated `docs/index.md` snapshot without updating `master`.
-- Rerunning the workflow for the same image tag force-updates that git tag and the matching `gh-pages` content.
-- The same run publishes `index.html`, `README.md`, and `docs/index.md` to GitHub Pages with the same layout as the tagged content.
+- Rerunning the workflow force-updates those git tags and republishes `gh-pages` from the newest resolved tag.
+- The same run publishes `index.html`, `README.md`, and `docs/index.md` to GitHub Pages with the same layout as the newest tagged content.
 - If the workflow token can read the package metadata, the snapshot links each tag to its exact GitHub Packages version page; otherwise it falls back to the package page filtered by `?tag=...`.
 
 ## Registry login
