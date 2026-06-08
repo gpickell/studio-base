@@ -3,27 +3,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 from pathlib import Path
 
 
-def version_key(tag: str) -> tuple[tuple[int, object], ...]:
-    version = tag.removeprefix("v")
-    base, _, suffix = version.partition("-")
-    key: list[tuple[int, object]] = [(0, tuple(int(part) for part in re.findall(r"\d+", base)))]
-
-    key.append((1, 1 if not suffix else 0))
-
-    for part in re.findall(r"\d+|[A-Za-z]+", suffix):
-        if part.isdigit():
-            key.append((2, int(part)))
-        else:
-            key.append((3, part.lower()))
-
-    return tuple(key)
-
-
-def load_json(path: str) -> dict:
+def load_json(path: str) -> object:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
@@ -51,21 +34,17 @@ def package_url_by_tag(path: str | None) -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", required=True)
-    parser.add_argument("--tags-json", required=True)
+    parser.add_argument("--top-tags-json", required=True)
     parser.add_argument("--manifest-json", required=True)
     parser.add_argument("--versions-json")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
-    tags_payload = load_json(args.tags_json)
+    top_tags = [tag for tag in load_json(args.top_tags_json) if isinstance(tag, str) and tag.startswith("v")]
     manifest_payload = load_json(args.manifest_json)
     package_urls = package_url_by_tag(args.versions_json)
 
-    tags = [tag for tag in tags_payload.get("tags", []) if tag.startswith("v")]
-    top_tags = sorted(tags, key=version_key, reverse=True)[:5]
-
-    annotations = manifest_payload.get("annotations", {})
+    annotations = manifest_payload.get("annotations", {}) if isinstance(manifest_payload, dict) else {}
     component_versions = sorted(
         (
             (name.removeprefix("versions/"), version)
