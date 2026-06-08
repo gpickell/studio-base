@@ -34,6 +34,7 @@ def package_url_by_tag(path: str | None) -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--current-tag", required=True)
     parser.add_argument("--top-tags-json", required=True)
     parser.add_argument("--manifest-json", required=True)
     parser.add_argument("--versions-json")
@@ -57,17 +58,18 @@ def main() -> None:
     lines = [
         "# Tags and Versions",
         "",
-        "| Tag | Docs | Package |",
-        "| --- | --- | --- |",
+        "| Current | Tag | Docs | Package |",
+        "| --- | --- | --- | --- |",
     ]
 
     for tag in top_tags:
+        current = "**This**" if tag == args.current_tag else ""
         docs = f"[docs](?tag={tag})"
         package = package_urls.get(
             tag,
             f"https://github.com/vertigis/studio-base/pkgs/container/studio%2Fbase?tag={tag}",
         )
-        lines.append(f"| `{tag}` | {docs} | [package]({package}) |")
+        lines.append(f"| {current} | `{tag}` | {docs} | [package]({package}) |")
 
     lines.extend(
         [
